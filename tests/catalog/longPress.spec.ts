@@ -23,6 +23,24 @@ describe('Long Press', () => {
         }
     });
 
+    describe('P2 - Scroll does not trigger Long Press', () => {
+        it('should not show long press toast when scrolling down on a product image', async () => {
+            Reporter.addSeverity('normal');
+
+            await CatalogPage.scrollDownOnGrid();
+
+            expect(await CatalogPage.isActionToastDisplayed()).toBe(false);
+        });
+
+        it('should not show context menu when scrolling down on a product image', async () => {
+            Reporter.addSeverity('normal');
+
+            await CatalogPage.scrollDownOnGrid();
+
+            expect(await CatalogPage.isContextMenuDisplayed(PRODUCTS.WIRELESS_HEADPHONES)).toBe(false);
+        });
+    });
+
     describe('P1 - Long Press', () => {
         it('should show Long press detected toast and context menu on long press', async () => {
             Reporter.addSeverity('critical');

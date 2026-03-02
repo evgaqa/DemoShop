@@ -213,6 +213,10 @@ class CatalogPage extends BasePage {
         }
     }
 
+    async scrollDownOnGrid(): Promise<void> {
+        await browser.execute(() => window.scrollBy(0, 400));
+    }
+
     async pullToRefreshOnGrid(): Promise<void> {
         const price = await $(
             '//span[contains(@class,"font-bold") and starts-with(normalize-space(.),"$")]'

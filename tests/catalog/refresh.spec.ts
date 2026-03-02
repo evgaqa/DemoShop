@@ -19,6 +19,22 @@ describe('Catalog Refresh', () => {
         await CatalogPage.selectCategory(CATEGORIES.ALL);
     });
 
+    describe('P2 - Scroll up does not trigger Refresh (Bug)', () => {
+        it('should not show refresh toast when scrolling down then scrolling back up', async () => {
+            Reporter.addSeverity('normal');
+            Reporter.addDescription(
+                'KNOWN BUG: Scrolling up (swiping down to go back to top) triggers the ' +
+                '"Products refreshed!" toast even though the user is just navigating the list.'
+            );
+
+            await CatalogPage.scrollDownOnGrid();
+            expect(await CatalogPage.isRefreshToastDisplayed()).toBe(false);
+
+            await CatalogPage.pullToRefreshOnGrid();
+            expect(await CatalogPage.isRefreshToastDisplayed()).toBe(false);
+        });
+    });
+
     describe('P2 - Pull to Refresh on Product Grid', () => {
         it('should refresh and show "Products refreshed!" toast when swiping down on the product grid', async () => {
             Reporter.addSeverity('normal');

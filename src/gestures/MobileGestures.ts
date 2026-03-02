@@ -103,6 +103,39 @@ export class MobileGestures {
     }
 
     /**
+     * Swipe up via JavaScript — dispatches touch events directly on the element.
+     * Simulates scrolling down through content (finger moves upward on screen).
+     */
+    static async swipeUpJS(element: WebdriverIO.Element): Promise<void> {
+        const rect = await browser.execute((el: HTMLElement) => {
+            const r = el.getBoundingClientRect();
+            return { top: r.top, left: r.left, width: r.width, height: r.height, viewportHeight: window.innerHeight };
+        }, element as any) as { top: number; left: number; width: number; height: number; viewportHeight: number };
+
+        const x      = Math.round(rect.left + rect.width / 2);
+        // Start near the bottom of the viewport, move 400px upward — mirrors swipeDownJS in reverse.
+        const startY = Math.round(Math.min(rect.viewportHeight - 20, rect.top + 300));
+        const endY   = Math.round(Math.max(startY - 400, 20));
+        const steps  = 8;
+
+        const fire = (type: string, y: number) =>
+            browser.execute((type: string, x: number, y: number, refX: number, refY: number) => {
+                const target = document.elementFromPoint(refX, refY) as HTMLElement;
+                if (!target) return;
+                const t = new Touch({ identifier: 1, target, clientX: x, clientY: y, screenX: x, screenY: y, pageX: x, pageY: y });
+                const active = type === 'touchend' ? [] : [t];
+                target.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: active, targetTouches: active, changedTouches: [t] }));
+            }, type, x, y, x, startY);
+
+        await fire('touchstart', startY);
+        for (let i = 1; i <= steps; i++) {
+            await fire('touchmove', Math.round(startY + (endY - startY) * i / steps));
+            await browser.pause(30); // eslint-disable-line wdio/no-pause -- deliberate gesture interpolation delay, not a test wait
+        }
+        await fire('touchend', endY);
+    }
+
+    /**
      * Long press via JavaScript — dispatches pointerdown directly on the element,
      * waits for the duration, then dispatches pointerup.
      * More reliable for React apps than the W3C Actions API approach because events
