@@ -170,6 +170,97 @@ describe('Shopping Cart', () => {
         });
     });
 
+    describe('P1 - Cart Persistence', () => {
+        async function loginWithRememberMe(rememberMe: boolean): Promise<void> {
+            await LoginPage.open();
+            if (rememberMe) {
+                await LoginPage.toggleRememberMe();
+            }
+            await LoginPage.login(CREDENTIALS.VALID_EMAIL, CREDENTIALS.VALID_PASSWORD);
+            await CatalogPage.waitForProductsLoaded();
+        }
+
+        describe('New Tab', () => {
+            it('should retain cart items in a new tab (Remember Me OFF)', async () => {
+                Reporter.addSeverity('critical');
+
+                await loginWithRememberMe(false);
+                await CatalogPage.addToCart(PRODUCTS.WIRELESS_HEADPHONES);
+                const badgeBefore = await CatalogPage.getCartBadgeCount();
+
+                const currentUrl = await browser.getUrl();
+                await browser.execute((url: string) => window.open(url), currentUrl);
+                const handles = await browser.getWindowHandles();
+                await browser.switchToWindow(handles[handles.length - 1]);
+
+                await CatalogPage.waitForProductsLoaded();
+                const badgeInNewTab = await CatalogPage.getCartBadgeCount();
+                expect(badgeInNewTab).toBe(badgeBefore);
+
+                await browser.closeWindow();
+                await browser.switchToWindow(handles[0]);
+            });
+
+            it('should retain cart items in a new tab (Remember Me ON)', async () => {
+                Reporter.addSeverity('critical');
+
+                await loginWithRememberMe(true);
+                await CatalogPage.addToCart(PRODUCTS.WIRELESS_HEADPHONES);
+                const badgeBefore = await CatalogPage.getCartBadgeCount();
+
+                const currentUrl = await browser.getUrl();
+                await browser.execute((url: string) => window.open(url), currentUrl);
+                const handles = await browser.getWindowHandles();
+                await browser.switchToWindow(handles[handles.length - 1]);
+
+                await CatalogPage.waitForProductsLoaded();
+                const badgeInNewTab = await CatalogPage.getCartBadgeCount();
+                expect(badgeInNewTab).toBe(badgeBefore);
+
+                await browser.closeWindow();
+                await browser.switchToWindow(handles[0]);
+            });
+        });
+
+        describe('Browser Restart', () => {
+            it('should retain cart items after browser restart (Remember Me OFF)', async () => {
+                Reporter.addSeverity('critical');
+
+                await loginWithRememberMe(false);
+                await CatalogPage.addToCart(PRODUCTS.WIRELESS_HEADPHONES);
+                const badgeBefore = await CatalogPage.getCartBadgeCount();
+
+                // Simulate browser restart: sessionStorage is cleared (auth lost), localStorage persists (cart survives)
+                await browser.execute(() => sessionStorage.clear());
+                await browser.refresh();
+
+                // User is logged out with Remember Me OFF — re-login to access the cart
+                await LoginPage.login(CREDENTIALS.VALID_EMAIL, CREDENTIALS.VALID_PASSWORD);
+                await CatalogPage.waitForProductsLoaded();
+
+                const badgeAfter = await CatalogPage.getCartBadgeCount();
+                expect(badgeAfter).toBe(badgeBefore);
+            });
+
+            it('should retain cart items after browser restart (Remember Me ON)', async () => {
+                Reporter.addSeverity('critical');
+
+                await loginWithRememberMe(true);
+                await CatalogPage.addToCart(PRODUCTS.WIRELESS_HEADPHONES);
+                const badgeBefore = await CatalogPage.getCartBadgeCount();
+
+                // Simulate browser restart: sessionStorage is cleared, localStorage persists (auth + cart survive)
+                await browser.execute(() => sessionStorage.clear());
+                await browser.refresh();
+
+                await CatalogPage.waitForProductsLoaded();
+
+                const badgeAfter = await CatalogPage.getCartBadgeCount();
+                expect(badgeAfter).toBe(badgeBefore);
+            });
+        });
+    });
+
     describe('P2 - Cart Edge Cases', () => {
         before(loginFresh);
 
